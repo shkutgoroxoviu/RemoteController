@@ -1,0 +1,42 @@
+{
+  "originHash" : "0d5dd7a4f6d4cf918c448a0a3125ca8e7c9cee1259b1564cf5313ac5aea5f71d",
+  "pins" : [
+    {
+      "identity" : "cocoaasyncsocket",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/robbiehanson/CocoaAsyncSocket",
+      "state" : {
+        "revision" : "dbdc00669c1ced63b27c3c5f052ee4d28f10150c",
+        "version" : "7.6.5"
+      }
+    },
+    {
+      "identity" : "swift-mqtt",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/emqx/swift-mqtt.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "88c6498938d72affb04ae50e20d249521d575064"
+      }
+    },
+    {
+      "identity" : "swift-promise",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/sutext/swift-promise",
+      "state" : {
+        "revision" : "8baedd0938795732164ab6ea426a47bf2eb1d730",
+        "version" : "2.2.0"
+      }
+    },
+    {
+      "identity" : "swiftmqtt",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/aciidgh/SwiftMQTT.git",
+      "state" : {
+        "revision" : "e412d414fbc03cabcee7fcbc8432aa1efb558c94",
+        "version" : "3.0.1"
+      }
+    }
+  ],
+  "version" : 3
+}
