@@ -195,3 +195,34 @@ extension TVPlatform {
         }
     }
 }
+
+extension DiscoveredDevice {
+    func correctedTVDevice() -> TVDevice {
+        var detectedBrand = brand
+        var detectedPlatform = platform
+
+        let lowercasedName = name.lowercased()
+
+        if lowercasedName.contains("samsung") {
+            detectedBrand = .samsung
+            detectedPlatform = .tizen
+        } else if lowercasedName.contains("lg") {
+            detectedBrand = .lg
+            detectedPlatform = .webOS
+        } else if lowercasedName.contains("roku") {
+            detectedBrand = .roku
+            detectedPlatform = .roku
+        } else if lowercasedName.contains("hisense") {
+            detectedBrand = .hisense
+            detectedPlatform = .vidaa
+        }
+
+        return TVDevice(
+            name: name,
+            ipAddress: ipAddress,
+            brand: detectedBrand,
+            platform: detectedPlatform,
+            model: model
+        )
+    }
+}

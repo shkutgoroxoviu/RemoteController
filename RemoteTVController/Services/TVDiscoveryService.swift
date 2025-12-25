@@ -23,7 +23,6 @@ final class TVDiscoveryService: ObservableObject {
     
     func startDiscovery() {
         guard !isSearching else { return }
-        
         isSearching = true
         errorMessage = nil
         discoveredDevices.removeAll()
@@ -34,6 +33,8 @@ final class TVDiscoveryService: ObservableObject {
         searchTimer = Timer.scheduledTimer(withTimeInterval: 15.0, repeats: false) { [weak self] _ in
             self?.stopDiscovery()
         }
+        
+        discoverCommonTVPorts()
     }
     
     func stopDiscovery() {
@@ -44,6 +45,7 @@ final class TVDiscoveryService: ObservableObject {
         ssdpSocket = nil
     }
     
+    // MARK: - SSDP Discovery
     private func sendSSDPSearch() {
         let searchTargets = [
             "urn:schemas-upnp-org:device:MediaRenderer:1",
@@ -59,7 +61,6 @@ final class TVDiscoveryService: ObservableObject {
         parameters.allowLocalEndpointReuse = true
         
         ssdpSocket = NWConnection(host: host, port: port, using: parameters)
-        
         ssdpSocket?.stateUpdateHandler = { [weak self] state in
             if case .ready = state {
                 for target in searchTargets {
@@ -77,9 +78,7 @@ final class TVDiscoveryService: ObservableObject {
                 self?.receiveResponses()
             }
         }
-        
         ssdpSocket?.start(queue: .global(qos: .userInitiated))
-        discoverCommonTVPorts()
     }
     
     private func sendSearchMessage(_ message: String) {
@@ -113,10 +112,8 @@ final class TVDiscoveryService: ObservableObject {
     
     private func fetchDeviceDescription(from urlString: String) {
         guard let url = URL(string: urlString) else { return }
-        
         URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
             guard let data = data, let xml = String(data: data, encoding: .utf8) else { return }
-            
             if let device = self?.parseDeviceXML(xml, urlString: urlString) {
                 DispatchQueue.main.async {
                     if !(self?.discoveredDevices.contains(where: { $0.ipAddress == device.ipAddress }) ?? false) {
@@ -130,12 +127,10 @@ final class TVDiscoveryService: ObservableObject {
     
     private func parseDeviceXML(_ xml: String, urlString: String) -> DiscoveredDevice? {
         guard let url = URL(string: urlString), let host = url.host else { return nil }
-        
         let friendlyName = extractValue(from: xml, tag: "friendlyName") ?? "Smart TV"
         let manufacturer = extractValue(from: xml, tag: "manufacturer") ?? ""
         let modelName = extractValue(from: xml, tag: "modelName")
         let brand = determineBrand(from: manufacturer, friendlyName: friendlyName)
-        
         return DiscoveredDevice(name: friendlyName, ipAddress: host, brand: brand, platform: .unknown, model: modelName, usn: nil)
     }
     
@@ -158,19 +153,19 @@ final class TVDiscoveryService: ObservableObject {
         return .unknown
     }
     
+    // MARK: - Port-based Discovery
     private func discoverCommonTVPorts() {
         guard let localIP = getLocalIPAddress() else { return }
         let components = localIP.components(separatedBy: ".")
         guard components.count == 4 else { return }
         let prefix = components[0...2].joined(separator: ".")
         
-        // Сканируем первые 254 адреса в подсети
         for i in 1...254 {
             let ip = "\(prefix).\(i)"
             checkSamsungTV(at: ip)
-            checkHisenseTV(at: ip)
             checkLGTV(at: ip)
             checkRokuTV(at: ip)
+            checkHisenseTV(at: ip)
         }
     }
     
@@ -185,9 +180,14 @@ final class TVDiscoveryService: ObservableObject {
                   let device = json["device"] as? [String: Any],
                   let name = device["name"] as? String else { return }
             
+            let discovered = DiscoveredDevice(name: name, ipAddress: ip, brand: .samsung, platform: .tizen, model: device["modelName"] as? String, usn: nil)
+            
             DispatchQueue.main.async {
-                let discovered = DiscoveredDevice(name: name, ipAddress: ip, brand: .samsung, platform: .tizen, model: device["modelName"] as? String, usn: nil)
-                if !(self?.discoveredDevices.contains(where: { $0.ipAddress == ip }) ?? false) {
+                if let index = self?.discoveredDevices.firstIndex(where: { $0.ipAddress == ip }) {
+                    if self?.discoveredDevices[index].brand != .samsung {
+                        self?.discoveredDevices[index] = discovered
+                    }
+                } else {
                     self?.discoveredDevices.append(discovered)
                     AnalyticsService.shared.trackEvent(.deviceFound, properties: ["brand": "Samsung"])
                 }
@@ -195,13 +195,54 @@ final class TVDiscoveryService: ObservableObject {
         }.resume()
     }
     
-    // MARK: - Hisense TV Discovery
-    private func checkHisenseTV(at ip: String) {
-        let hisensePorts: [UInt16] = [36669, 8080, 56789, 1926]
+    private func checkLGTV(at ip: String) {
+        guard let url = URL(string: "http://\(ip):3000/api/v1/") else { return }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 2
         
-        for port in hisensePorts {
-            checkHisensePort(at: ip, port: port)
-        }
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, _ in
+            guard let httpResponse = response as? HTTPURLResponse,
+                  (200...299).contains(httpResponse.statusCode) else { return }
+            
+            DispatchQueue.main.async {
+                let discovered = DiscoveredDevice(name: "LG Smart TV", ipAddress: ip, brand: .lg, platform: .webOS, model: nil, usn: nil)
+                if !(self?.discoveredDevices.contains(where: { $0.ipAddress == ip }) ?? false) {
+                    self?.discoveredDevices.append(discovered)
+                    AnalyticsService.shared.trackEvent(.deviceFound, properties: ["brand": "LG"])
+                }
+            }
+        }.resume()
+    }
+    
+    private func checkRokuTV(at ip: String) {
+        guard let url = URL(string: "http://\(ip):8060/query/device-info") else { return }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 2
+        
+        URLSession.shared.dataTask(with: request) { [weak self] data, _, _ in
+            guard let data = data, let xml = String(data: data, encoding: .utf8), xml.lowercased().contains("roku") else { return }
+            
+            let name = self?.extractValue(from: xml, tag: "user-device-name") ??
+                       self?.extractValue(from: xml, tag: "friendly-device-name") ?? "Roku TV"
+            let model = self?.extractValue(from: xml, tag: "model-name")
+            
+            var brand: TVBrand = .roku
+            if xml.lowercased().contains("tcl") { brand = .tcl }
+            else if xml.lowercased().contains("hisense") { brand = .hisense }
+            
+            DispatchQueue.main.async {
+                let discovered = DiscoveredDevice(name: name, ipAddress: ip, brand: brand, platform: .roku, model: model, usn: nil)
+                if !(self?.discoveredDevices.contains(where: { $0.ipAddress == ip }) ?? false) {
+                    self?.discoveredDevices.append(discovered)
+                    AnalyticsService.shared.trackEvent(.deviceFound, properties: ["brand": brand.rawValue])
+                }
+            }
+        }.resume()
+    }
+    
+    private func checkHisenseTV(at ip: String) {
+        let ports: [UInt16] = [36669, 8080, 56789, 1926]
+        for port in ports { checkHisensePort(at: ip, port: port) }
     }
     
     private func checkHisensePort(at ip: String, port: UInt16) {
@@ -218,15 +259,11 @@ final class TVDiscoveryService: ObservableObject {
                 connection.cancel()
             case .failed, .cancelled:
                 connection.cancel()
-            default:
-                break
+            default: break
             }
         }
         connection.start(queue: .global(qos: .userInitiated))
-        
-        DispatchQueue.global().asyncAfter(deadline: .now() + 2) {
-            connection.cancel()
-        }
+        DispatchQueue.global().asyncAfter(deadline: .now() + 2) { connection.cancel() }
     }
     
     private func identifyHisenseDevice(at ip: String, port: UInt16) {
@@ -247,20 +284,23 @@ final class TVDiscoveryService: ObservableObject {
                     
                     var name = "Hisense Smart TV"
                     var model: String? = nil
-                    
                     if let data = data,
                        let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                        name = json["name"] as? String ?? 
-                               json["friendlyName"] as? String ?? 
+                        name = json["name"] as? String ??
+                               json["friendlyName"] as? String ??
                                json["deviceName"] as? String ?? name
-                        model = json["model"] as? String ?? 
+                        model = json["model"] as? String ??
                                 json["modelName"] as? String ??
                                 json["model_name"] as? String
                     }
                     
+                    let discovered = DiscoveredDevice(name: name, ipAddress: ip, brand: .hisense, platform: .vidaa, model: model, usn: nil)
                     DispatchQueue.main.async {
-                        let discovered = DiscoveredDevice(name: name, ipAddress: ip, brand: .hisense, platform: .vidaa, model: model, usn: nil)
-                        if !(self?.discoveredDevices.contains(where: { $0.ipAddress == ip }) ?? false) {
+                        if let index = self?.discoveredDevices.firstIndex(where: { $0.ipAddress == ip }) {
+                            if self?.discoveredDevices[index].brand != .samsung {
+                                self?.discoveredDevices[index] = discovered
+                            }
+                        } else {
                             self?.discoveredDevices.append(discovered)
                             AnalyticsService.shared.trackEvent(.deviceFound, properties: ["brand": "Hisense"])
                         }
@@ -269,75 +309,9 @@ final class TVDiscoveryService: ObservableObject {
                 }
             }.resume()
         }
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
-            let discovered = DiscoveredDevice(
-                name: "Hisense TV",
-                ipAddress: ip,
-                brand: .hisense,
-                platform: .vidaa,
-                model: nil,
-                usn: nil
-            )
-            if !(self?.discoveredDevices.contains(where: { $0.ipAddress == ip }) ?? false) {
-                self?.discoveredDevices.append(discovered)
-                AnalyticsService.shared.trackEvent(.deviceFound, properties: ["brand": "Hisense"])
-            }
-        }
     }
     
-    // MARK: - LG TV Discovery
-    private func checkLGTV(at ip: String) {
-        guard let url = URL(string: "http://\(ip):3000/api/v1/") else { return }
-        var request = URLRequest(url: url)
-        request.timeoutInterval = 2
-        
-        URLSession.shared.dataTask(with: request) { [weak self] data, response, _ in
-            guard let httpResponse = response as? HTTPURLResponse,
-                  (200...299).contains(httpResponse.statusCode) else { return }
-            
-            DispatchQueue.main.async {
-                let discovered = DiscoveredDevice(name: "LG Smart TV", ipAddress: ip, brand: .lg, platform: .webOS, model: nil, usn: nil)
-                if !(self?.discoveredDevices.contains(where: { $0.ipAddress == ip }) ?? false) {
-                    self?.discoveredDevices.append(discovered)
-                    AnalyticsService.shared.trackEvent(.deviceFound, properties: ["brand": "LG"])
-                }
-            }
-        }.resume()
-    }
-    
-    // MARK: - Roku TV Discovery
-    private func checkRokuTV(at ip: String) {
-        guard let url = URL(string: "http://\(ip):8060/query/device-info") else { return }
-        var request = URLRequest(url: url)
-        request.timeoutInterval = 2
-        
-        URLSession.shared.dataTask(with: request) { [weak self] data, _, _ in
-            guard let data = data,
-                  let xml = String(data: data, encoding: .utf8),
-                  xml.contains("roku") || xml.contains("Roku") else { return }
-            
-            let name = self?.extractValue(from: xml, tag: "user-device-name") ?? 
-                       self?.extractValue(from: xml, tag: "friendly-device-name") ?? "Roku TV"
-            let model = self?.extractValue(from: xml, tag: "model-name")
-            
-            var brand: TVBrand = .roku
-            if xml.lowercased().contains("tcl") {
-                brand = .tcl
-            } else if xml.lowercased().contains("hisense") {
-                brand = .hisense
-            }
-            
-            DispatchQueue.main.async {
-                let discovered = DiscoveredDevice(name: name, ipAddress: ip, brand: brand, platform: .roku, model: model, usn: nil)
-                if !(self?.discoveredDevices.contains(where: { $0.ipAddress == ip }) ?? false) {
-                    self?.discoveredDevices.append(discovered)
-                    AnalyticsService.shared.trackEvent(.deviceFound, properties: ["brand": brand.rawValue])
-                }
-            }
-        }.resume()
-    }
-    
+    // MARK: - Helpers
     private func getLocalIPAddress() -> String? {
         var address: String?
         var ifaddr: UnsafeMutablePointer<ifaddrs>?
@@ -350,10 +324,11 @@ final class TVDiscoveryService: ObservableObject {
                String(cString: interface.ifa_name) == "en0" {
                 var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
                 getnameinfo(interface.ifa_addr, socklen_t(interface.ifa_addr.pointee.sa_len),
-                           &hostname, socklen_t(hostname.count), nil, 0, NI_NUMERICHOST)
+                            &hostname, socklen_t(hostname.count), nil, 0, NI_NUMERICHOST)
                 address = String(cString: hostname)
             }
         }
         return address
     }
 }
+
