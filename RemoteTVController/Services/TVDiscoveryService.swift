@@ -16,22 +16,21 @@ final class TVDiscoveryService: ObservableObject {
     
     private var ssdpSocket: NWConnection?
     private var searchTimer: Timer?
-    
     private let ssdpAddress = "239.255.255.250"
     private let ssdpPort: UInt16 = 1900
     
     private init() {}
     
-    // MARK: - Discovery Control
-    func startDiscovery(timeout: TimeInterval = 10) {
+    func startDiscovery() {
         guard !isSearching else { return }
         isSearching = true
-        discoveredDevices.removeAll()
         errorMessage = nil
+        discoveredDevices.removeAll()
         
+        AnalyticsService.shared.trackEvent(.deviceSearchStarted)
         sendSSDPSearch()
         
-        searchTimer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { [weak self] _ in
+        searchTimer = Timer.scheduledTimer(withTimeInterval: 15.0, repeats: false) { [weak self] _ in
             self?.stopDiscovery()
         }
     }
@@ -44,13 +43,13 @@ final class TVDiscoveryService: ObservableObject {
         ssdpSocket = nil
     }
     
-    // MARK: - SSDP Search
+    // MARK: - SSDP Discovery
     private func sendSSDPSearch() {
         let searchTargets = [
             "ssdp:all",
             "urn:schemas-upnp-org:device:MediaRenderer:1",
-            "urn:samsung.com:device:RemoteControlReceiver:1",
-            "urn:dial-multiscreen-org:service:dial:1"
+            "urn:dial-multiscreen-org:service:dial:1",
+            "urn:samsung.com:device:RemoteControlReceiver:1"
         ]
         
         let host = NWEndpoint.Host(ssdpAddress)
@@ -62,15 +61,15 @@ final class TVDiscoveryService: ObservableObject {
         ssdpSocket?.stateUpdateHandler = { [weak self] state in
             if case .ready = state {
                 for target in searchTargets {
-                    let message = """
+                    let searchMessage = """
                     M-SEARCH * HTTP/1.1\r
                     HOST: \(self?.ssdpAddress ?? "239.255.255.250"):\(self?.ssdpPort ?? 1900)\r
                     MAN: "ssdp:discover"\r
-                    MX: 3\r
+                    MX: 5\r
                     ST: \(target)\r
                     \r
                     """
-                    self?.sendSearchMessage(message)
+                    self?.sendSearchMessage(searchMessage)
                 }
                 self?.receiveResponses()
             }
@@ -92,85 +91,78 @@ final class TVDiscoveryService: ObservableObject {
         }
     }
     
-    // MARK: - Parsing SSDP
     private func parseSSDPResponse(_ response: String) {
+        let lines = response.components(separatedBy: "\r\n")
         var location: String?
-        var usn: String?
         var st: String?
         var server: String?
+        var usn: String?
         
-        for line in response.components(separatedBy: "\r\n") {
+        for line in lines {
             let upper = line.uppercased()
             if upper.hasPrefix("LOCATION:") {
                 location = line.components(separatedBy: ":").dropFirst().joined(separator: ":").trimmingCharacters(in: .whitespaces)
-            }
-            if upper.hasPrefix("USN:") {
-                usn = line.components(separatedBy: ":").dropFirst().joined(separator: ":").trimmingCharacters(in: .whitespaces)
-            }
-            if upper.hasPrefix("ST:") {
+            } else if upper.hasPrefix("ST:") {
                 st = line.components(separatedBy: ":").dropFirst().joined(separator: ":").trimmingCharacters(in: .whitespaces)
-            }
-            if upper.hasPrefix("SERVER:") {
+            } else if upper.hasPrefix("SERVER:") {
                 server = line.components(separatedBy: ":").dropFirst().joined(separator: ":").trimmingCharacters(in: .whitespaces)
+            } else if upper.hasPrefix("USN:") {
+                usn = line.components(separatedBy: ":").dropFirst().joined(separator: ":").trimmingCharacters(in: .whitespaces)
             }
         }
         
-        guard let locationURL = location, let url = URL(string: locationURL), let host = url.host else { return }
-        
-        fetchDeviceDescription(from: locationURL, usn: usn, st: st, server: server)
+        guard let loc = location else { return }
+        fetchDeviceDescription(from: loc, st: st, server: server, usn: usn)
     }
     
-    private func fetchDeviceDescription(from urlString: String, usn: String?, st: String?, server: String?) {
-        guard let url = URL(string: urlString) else { return }
-        
+    private func fetchDeviceDescription(from urlString: String, st: String?, server: String?, usn: String?) {
+        guard let url = URL(string: urlString), let host = url.host else { return }
         URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
             guard let data = data, let xml = String(data: data, encoding: .utf8) else { return }
+            
             let friendlyName = self?.extractValue(from: xml, tag: "friendlyName") ?? "Smart TV"
             let manufacturer = self?.extractValue(from: xml, tag: "manufacturer") ?? ""
             let modelName = self?.extractValue(from: xml, tag: "modelName")
-            let brand = self?.determineBrand(manufacturer: manufacturer, friendlyName: friendlyName, usn: usn, st: st, server: server) ?? .unknown
-            let platform = self?.determinePlatform(brand: brand, usn: usn, st: st, server: server) ?? .unknown
             
-            let discovered = DiscoveredDevice(name: friendlyName, ipAddress: url.host ?? "", brand: brand, platform: platform, model: modelName, usn: usn)
+            let brand = self?.determineBrand(from: manufacturer, friendlyName: friendlyName, server: server) ?? .unknown
+            let platform: TVPlatform
+            switch brand {
+            case .samsung: platform = .tizen
+            case .lg: platform = .webOS
+            case .roku, .tcl, .hisense: platform = .roku
+            default: platform = .unknown
+            }
+            
+            let device = DiscoveredDevice(name: friendlyName, ipAddress: host, brand: brand, platform: platform, model: modelName, usn: usn)
             
             DispatchQueue.main.async {
-                if !(self?.discoveredDevices.contains(where: { $0.ipAddress == discovered.ipAddress }) ?? false) {
-                    self?.discoveredDevices.append(discovered)
+                if !(self?.discoveredDevices.contains(where: { $0.ipAddress == host }) ?? false) {
+                    self?.discoveredDevices.append(device)
+                    AnalyticsService.shared.trackEvent(.deviceFound, properties: ["brand": brand.rawValue])
                 }
             }
         }.resume()
     }
     
     private func extractValue(from xml: String, tag: String) -> String? {
-        guard let open = xml.range(of: "<\(tag)>"),
-              let close = xml.range(of: "</\(tag)>", range: open.upperBound..<xml.endIndex) else { return nil }
-        return String(xml[open.upperBound..<close.lowerBound])
+        guard let openRange = xml.range(of: "<\(tag)>"),
+              let closeRange = xml.range(of: "</\(tag)>", range: openRange.upperBound..<xml.endIndex) else { return nil }
+        return String(xml[openRange.upperBound..<closeRange.lowerBound])
     }
     
-    // MARK: - Brand & Platform Detection
-    private func determineBrand(manufacturer: String, friendlyName: String, usn: String?, st: String?, server: String?) -> TVBrand {
-        let combined = (manufacturer + " " + friendlyName + " " + (usn ?? "") + " " + (st ?? "") + " " + (server ?? "")).lowercased()
+    private func determineBrand(from manufacturer: String, friendlyName: String, server: String?) -> TVBrand {
+        let combined = (manufacturer + " " + friendlyName + " " + (server ?? "")).lowercased()
         if combined.contains("samsung") || combined.contains("tizen") { return .samsung }
-        if combined.contains("lg") { return .lg }
+        if combined.contains("lg") || combined.contains("webos") { return .lg }
         if combined.contains("sony") { return .sony }
-        if combined.contains("hisense") { return .hisense }
+        if combined.contains("hisense") || combined.contains("vidaa") { return .hisense }
         if combined.contains("philips") { return .philips }
         if combined.contains("panasonic") { return .panasonic }
         if combined.contains("tcl") { return .tcl }
         if combined.contains("roku") { return .roku }
         return .unknown
     }
-    
-    private func determinePlatform(brand: TVBrand, usn: String?, st: String?, server: String?) -> TVPlatform {
-        switch brand {
-        case .samsung: return .tizen
-        case .lg: return .webOS
-        case .roku: return .roku
-        case .hisense: return .vidaa
-        case .sony, .philips, .tcl: return .androidTV
-        default: return .unknown
-        }
-    }
 }
+
 
 
