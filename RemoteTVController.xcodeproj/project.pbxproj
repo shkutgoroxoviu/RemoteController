@@ -7,9 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0150EBC72EF3245D0020193D /* MQTT in Frameworks */ = {isa = PBXBuildFile; productRef = 0150EBC62EF3245D0020193D /* MQTT */; };
-		0150EBCA2EF326310020193D /* SwiftMQTT in Frameworks */ = {isa = PBXBuildFile; productRef = 0150EBC92EF326310020193D /* SwiftMQTT */; };
-		0150EBCD2EF335170020193D /* CocoaAsyncSocket in Frameworks */ = {isa = PBXBuildFile; productRef = 0150EBCC2EF335170020193D /* CocoaAsyncSocket */; };
 		019E16032EFE9966005794A5 /* ApphudSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 019E16022EFE9966005794A5 /* ApphudSDK */; };
 /* End PBXBuildFile section */
 
@@ -43,10 +40,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0150EBCA2EF326310020193D /* SwiftMQTT in Frameworks */,
 				019E16032EFE9966005794A5 /* ApphudSDK in Frameworks */,
-				0150EBC72EF3245D0020193D /* MQTT in Frameworks */,
-				0150EBCD2EF335170020193D /* CocoaAsyncSocket in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -89,9 +83,6 @@
 			);
 			name = RemoteTVController;
 			packageProductDependencies = (
-				0150EBC62EF3245D0020193D /* MQTT */,
-				0150EBC92EF326310020193D /* SwiftMQTT */,
-				0150EBCC2EF335170020193D /* CocoaAsyncSocket */,
 				019E16022EFE9966005794A5 /* ApphudSDK */,
 			);
 			productName = RemoteTVController;
@@ -123,9 +114,6 @@
 			mainGroup = 01930F042EF2DD9200B90740;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				0150EBC52EF3245D0020193D /* XCRemoteSwiftPackageReference "swift-mqtt" */,
-				0150EBC82EF326310020193D /* XCRemoteSwiftPackageReference "SwiftMQTT" */,
-				0150EBCB2EF335170020193D /* XCRemoteSwiftPackageReference "CocoaAsyncSocket" */,
 				019E16012EFE9966005794A5 /* XCRemoteSwiftPackageReference "ApphudSDK" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -386,30 +374,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		0150EBC52EF3245D0020193D /* XCRemoteSwiftPackageReference "swift-mqtt" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/emqx/swift-mqtt.git";
-			requirement = {
-				branch = main;
-				kind = branch;
-			};
-		};
-		0150EBC82EF326310020193D /* XCRemoteSwiftPackageReference "SwiftMQTT" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/aciidgh/SwiftMQTT.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 3.0.1;
-			};
-		};
-		0150EBCB2EF335170020193D /* XCRemoteSwiftPackageReference "CocoaAsyncSocket" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/robbiehanson/CocoaAsyncSocket";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 7.6.5;
-			};
-		};
 		019E16012EFE9966005794A5 /* XCRemoteSwiftPackageReference "ApphudSDK" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/apphud/ApphudSDK";
@@ -421,21 +385,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		0150EBC62EF3245D0020193D /* MQTT */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0150EBC52EF3245D0020193D /* XCRemoteSwiftPackageReference "swift-mqtt" */;
-			productName = MQTT;
-		};
-		0150EBC92EF326310020193D /* SwiftMQTT */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0150EBC82EF326310020193D /* XCRemoteSwiftPackageReference "SwiftMQTT" */;
-			productName = SwiftMQTT;
-		};
-		0150EBCC2EF335170020193D /* CocoaAsyncSocket */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0150EBCB2EF335170020193D /* XCRemoteSwiftPackageReference "CocoaAsyncSocket" */;
-			productName = CocoaAsyncSocket;
-		};
 		019E16022EFE9966005794A5 /* ApphudSDK */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 019E16012EFE9966005794A5 /* XCRemoteSwiftPackageReference "ApphudSDK" */;
