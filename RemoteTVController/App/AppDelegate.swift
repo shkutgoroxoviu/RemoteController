@@ -17,7 +17,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil
     ) -> Bool {
 
-        Apphud.start(apiKey: "app_kiuRNi9rcQpztPwTaD7Qx2ehCm1qBb")
+        Apphud.start(apiKey: "app_8Q9FVVicQ4x2kHocoNJxTy1JCm2ey3")
         Apphud.setDeviceIdentifiers(idfa: nil, idfv: UIDevice.current.identifierForVendor?.uuidString)
 
         return true

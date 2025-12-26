@@ -305,7 +305,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.RemoteTVController;
+				PRODUCT_BUNDLE_IDENTIFIER = com.saw.5032pult;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -346,7 +346,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.RemoteTVController;
+				PRODUCT_BUNDLE_IDENTIFIER = com.saw.5032pult;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -414,8 +414,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/apphud/ApphudSDK";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 3.6.0;
+				kind = exactVersion;
+				version = 3.6.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

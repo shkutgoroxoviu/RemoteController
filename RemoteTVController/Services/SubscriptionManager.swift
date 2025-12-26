@@ -11,6 +11,7 @@ import ApphudSDK
 @MainActor
 final class SubscriptionManager: ObservableObject {
     static let shared = SubscriptionManager()
+    private var appState = AppState()
     
     // MARK: - Published Properties
     @Published var isSubscribed: Bool = false
@@ -53,7 +54,7 @@ final class SubscriptionManager: ObservableObject {
                 self?.isLoading = false
                 
                 if let error = error {
-                    self?.errorMessage = "Ошибка загрузки продуктов: \(error.localizedDescription)"
+                    self?.errorMessage = "Error loading products: \(error.localizedDescription)"
                     return
                 }
                 
@@ -73,7 +74,7 @@ final class SubscriptionManager: ObservableObject {
                     self?.products = paywall.products
                     print("✅ Загружены продукты: \(paywall.products.count)")
                 } else {
-                    self?.errorMessage = "Не найден ни один paywall"
+                    self?.errorMessage = "No paywall was found."
                     print("❌ Не найден ни один paywall")
                 }
             }
@@ -86,7 +87,7 @@ final class SubscriptionManager: ObservableObject {
         errorMessage = ""
         
         guard SKPaymentQueue.canMakePayments() else {
-            let msg = "Покупки недоступны на этом устройстве"
+            let msg = "Purchases are not available on this device."
             errorMessage = msg
             completion(false, msg)
             return
@@ -104,7 +105,8 @@ final class SubscriptionManager: ObservableObject {
                 
                 let active = (result.subscription?.isActive() ?? false) || (result.nonRenewingPurchase?.isActive() ?? false) || Apphud.hasActiveSubscription()
                 self?.isSubscribed = active
-                completion(active, active ? nil : "Подписка не активна")
+                self?.appState.hasSubscribed = active
+                completion(active, active ? nil : "The subscription is not active")
             }
         }
     }
@@ -126,7 +128,8 @@ final class SubscriptionManager: ObservableObject {
                 
                 let active = Apphud.hasActiveSubscription()
                 self?.isSubscribed = active
-                completion(active, active ? nil : "Активные подписки не найдены")
+                self?.appState.hasSubscribed = active
+                completion(active, active ? nil : "No active subscriptions found")
             }
         }
     }
@@ -134,6 +137,7 @@ final class SubscriptionManager: ObservableObject {
     // MARK: - Check Subscription Status
     func checkSubscriptionStatus() {
         isSubscribed = Apphud.hasActiveSubscription()
+        appState.hasSubscribed = Apphud.hasActiveSubscription()
         print("🔍 SubscriptionManager: Текущий статус подписки: \(isSubscribed)")
     }
     
@@ -170,12 +174,14 @@ final class SubscriptionManager: ObservableObject {
 extension SubscriptionManager: ApphudDelegate {
     func apphudSubscriptionsUpdated(_ subscriptions: [ApphudSubscription]) {
         DispatchQueue.main.async {
+            self.appState.hasSubscribed = Apphud.hasActiveSubscription()
             self.isSubscribed = Apphud.hasActiveSubscription()
         }
     }
     
     func apphudNonRenewingPurchasesUpdated(_ purchases: [ApphudNonRenewingPurchase]) {
         DispatchQueue.main.async {
+            self.appState.hasSubscribed = Apphud.hasActiveSubscription()
             self.isSubscribed = Apphud.hasActiveSubscription()
         }
     }
@@ -221,7 +227,7 @@ final class StoreKitSubscriptionManager: ObservableObject {
             products = try await Product.products(for: productIDs)
             print("✅ Products loaded: \(products.map { $0.id })")
         } catch {
-            errorMessage = "Ошибка загрузки продуктов: \(error.localizedDescription)"
+            errorMessage = "Error loading products: \(error.localizedDescription)"
             print("❌ \(errorMessage)")
         }
     }

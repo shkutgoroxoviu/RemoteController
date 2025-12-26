@@ -7,16 +7,16 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "F68A5F56-518F-4B23-8F75-1EA42D1D6A77"
+            uuid = "B93E99D2-D4C6-49F2-B1B5-4F3C5DF3948F"
             shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "RemoteTVController/App/AppState.swift"
+            filePath = "RemoteTVController/ViewModels/PaywallViewModel.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "76"
-            endingLineNumber = "76"
-            landmarkName = "startSessionTimer()"
+            startingLineNumber = "112"
+            endingLineNumber = "112"
+            landmarkName = "pricePerWeek(_:)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>

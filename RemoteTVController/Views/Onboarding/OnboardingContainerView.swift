@@ -10,7 +10,9 @@ struct OnboardingContainerView: View {
     @StateObject private var viewModel = OnboardingViewModel(
         startPage: UserDefaults.standard.integer(forKey: "onboarding_page")
     )
-
+    @State private var showRestoreAlert: Bool = false
+    @State private var restoreMessage: String = ""
+    
     var body: some View {
         ZStack {
             TabView(selection: $viewModel.currentPage) {
@@ -57,13 +59,18 @@ struct OnboardingContainerView: View {
                         Text("|").foregroundColor(.white.opacity(0.3))
                         Link("Privacy Policy", destination: URL(string: "https://example.com/privacy")!)
                         Text("|").foregroundColor(.white.opacity(0.3))
-//                        Button("Restore") { Task { await SubscriptionManager.shared.restorePurchases() } }
+                        Button("Restore") {
+                            SubscriptionManager.shared.restorePurchases(completion: { isSucces, text in
+                                restoreMessage = text ?? ""
+                                showRestoreAlert = true
+                            })
+                        }
                     }
                     .font(.system(size: 12))
                     .foregroundColor(.white.opacity(0.5))
                 }
                 .padding(.top, 32)
-                .padding(.bottom, 84)
+                .padding(.bottom, 40)
                 .frame(maxWidth: .infinity)
                 .background(
                     RoundedCorner(radius: 24, corners: [.topLeft, .topRight])
@@ -71,6 +78,11 @@ struct OnboardingContainerView: View {
                 )
             }
             .ignoresSafeArea()
+        }
+        .alert("Restore Purchase", isPresented: $showRestoreAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(restoreMessage)
         }
         .ignoresSafeArea()
     }

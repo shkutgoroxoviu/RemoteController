@@ -6,8 +6,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apphud/ApphudSDK",
       "state" : {
-        "revision" : "a4d2b93384cc67fa6a853465ff345be6f84b0a72",
-        "version" : "3.6.2"
+        "revision" : "9dc43190390d824c682f7d6372b12613260576de",
+        "version" : "3.6.0"
       }
     },
     {

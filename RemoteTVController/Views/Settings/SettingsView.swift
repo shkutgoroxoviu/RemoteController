@@ -7,19 +7,28 @@ import SwiftUI
 
 struct SettingsView: View {
     @StateObject private var viewModel = SettingsViewModel()
+    private var appState = AppState.shared
+    @State private var showProAlert = false
+    @State private var showSubView = false
 
     var body: some View {
         ZStack {
             Color(hex: "15141C").ignoresSafeArea()
-
+            
             ScrollView {
                 VStack(spacing: 28) {
-
+                    
                     settingsSection(title: "ACCOUNT") {
                         SettingsGlassRow(
                             icon: "creditcard",
                             title: "Manage Subscription",
-                            action: viewModel.openManageSubscription
+                            action: {
+                                if appState.hasSubscribed {
+                                    showProAlert = true
+                                } else {
+                                    showSubView = true
+                                }
+                            }
                         )
 
                         SettingsGlassRow(
@@ -63,11 +72,19 @@ struct SettingsView: View {
         }
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.large)
+        .fullScreenCover(isPresented: $showSubView, content: {
+            PaywallView()
+        })
         .sheet(isPresented: $viewModel.showRateUs) {
             RateUsView(viewModel: viewModel)
         }
         .sheet(isPresented: $viewModel.showShareSheet) {
             ShareSheet(items: [viewModel.appStoreURL])
+        }
+        .alert("You already have PRO", isPresented: $showProAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("You already have an active subscription.")
         }
     }
 

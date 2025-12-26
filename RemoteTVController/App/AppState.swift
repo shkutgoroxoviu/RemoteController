@@ -8,6 +8,7 @@ internal import Combine
 
 @MainActor
 final class AppState: ObservableObject {
+    static let shared = AppState()
     // MARK: - Published Properties
     @Published var hasCompletedOnboarding: Bool {
         didSet {

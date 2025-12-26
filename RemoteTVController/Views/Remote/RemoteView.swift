@@ -49,13 +49,11 @@ struct RemoteView: View {
             RemoteButtonView(button: .power, size: .init(width: 72, height: 56)) { sendCommand(.power) }
             Spacer()
             Button {
-                Task {
-                    await StoreKitSubscriptionManager.shared.updatePurchasedProducts()
-                    if !StoreKitSubscriptionManager.shared.isSubscribed {
-                        appState.triggerPaywall(for: .premiumFeature)
-                    } else {
-                        showProAlert = true
-                    }
+                SubscriptionManager.shared.loadProducts()
+                if !SubscriptionManager.shared.isSubscribed {
+                    appState.triggerPaywall(for: .premiumFeature)
+                } else {
+                    showProAlert = true
                 }
             } label: {
                 Text("PRO").font(.system(size: 12, weight: .bold)).foregroundColor(Color(hex: "15141C"))

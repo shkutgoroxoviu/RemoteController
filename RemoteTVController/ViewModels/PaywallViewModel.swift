@@ -12,9 +12,9 @@ internal import StoreKit
 final class PaywallViewModel: ObservableObject {
 
     // MARK: - Published (для View)
-    @Published var weeklyProduct: Product?
-    @Published var yearlyProduct: Product?
-    @Published var selectedProduct: Product?
+    @Published var weeklyProduct: ApphudProduct?
+    @Published var yearlyProduct: ApphudProduct?
+    @Published var selectedProduct: ApphudProduct?
 
     @Published var isLoading: Bool = false
     @Published var canClose: Bool = false
@@ -25,14 +25,14 @@ final class PaywallViewModel: ObservableObject {
     private let weeklyId = "week_6.99_nottrial"
     private let yearlyId = "yearly_49.99_nottrial"
 
-    private let manager = StoreKitSubscriptionManager.shared
+    private let manager = SubscriptionManager.shared
     private var cancellables = Set<AnyCancellable>()
     private var closeTimer: Timer?
 
     // MARK: - Init
     init() {
         Task {
-            await manager.fetchProducts()
+            manager.loadProducts()
             bind()
             startCloseTimer()
         }
@@ -50,8 +50,8 @@ final class PaywallViewModel: ObservableObject {
             .sink { [weak self] products in
                 guard let self else { return }
 
-                self.weeklyProduct = products.first { $0.id == self.weeklyId }
-                self.yearlyProduct = products.first { $0.id == self.yearlyId }
+                self.weeklyProduct = products.first { $0.productId == self.weeklyId }
+                self.yearlyProduct = products.first { $0.productId == self.yearlyId }
 
                 self.selectedProduct = self.yearlyProduct ?? self.weeklyProduct
             }
@@ -70,7 +70,7 @@ final class PaywallViewModel: ObservableObject {
     }
 
     // MARK: - UI actions
-    func select(_ product: Product) {
+    func select(_ product: ApphudProduct) {
         selectedProduct = product
     }
 
@@ -81,42 +81,46 @@ final class PaywallViewModel: ObservableObject {
             return
         }
 
-        await manager.purchase(product) { success, error in
+        manager.purchase(product: product) { success, error in
             if let error {
                 self.errorMessage = error
                 self.showError = true
             }
+            AppState.shared.hasSubscribed = true
             completion(success)
         }
     }
 
     func restore(completion: @escaping (Bool) -> Void) {
-//        manager.restorePurchases { success, error in
-//            if let error {
-//                self.errorMessage = error
-//                self.showError = true
-//            }
-//            completion(success)
-//        }
+        manager.restorePurchases { success, error in
+            if let error {
+                self.errorMessage = error
+                self.showError = true
+            }
+            AppState.shared.hasSubscribed = true
+            completion(success)
+        }
     }
 
     // MARK: - Price helpers (просто прокси)
-    func price(_ product: Product) -> String {
+    func price(_ product: ApphudProduct) -> String {
         manager.getPriceString(for: product)
     }
 
-    func pricePerWeek(_ product: Product) -> String {
-        let weekly = NSDecimalNumber(decimal: product.price).doubleValue / 52
+    func pricePerWeek(_ product: ApphudProduct) -> String {
+        let weekly = (product.skProduct?.price.doubleValue ?? 0) / 52
         return String(format: "$%.2f/week", weekly)
     }
     
-    func weeklySavingsPercent(weekly: Product?, yearly: Product?) -> Int {
-        guard let weekly = weekly, let yearly = yearly else { return 0 }
-        let weeklyPrice = (weekly.price as NSDecimalNumber).doubleValue
-        let yearlyPricePerWeek = (yearly.price as NSDecimalNumber).doubleValue / 52
+    func weeklySavingsPercent(weekly: ApphudProduct?, yearly: ApphudProduct?) -> Int {
+        guard let weekly = weekly, let yearly = yearly,
+              let weeklyPrice = weekly.skProduct?.price.doubleValue,
+              let yearlyPrice = yearly.skProduct?.price.doubleValue else { return 0 }
 
-        let savings = 1 - (yearlyPricePerWeek / weeklyPrice)
-        return Int(savings * 100)
+        let yearlyPricePerWeek = yearlyPrice / 52.0  
+
+        let savings = 1.0 - (yearlyPricePerWeek / weeklyPrice)
+        return max(0, Int(savings * 100))
     }
 
     // MARK: - Close delay

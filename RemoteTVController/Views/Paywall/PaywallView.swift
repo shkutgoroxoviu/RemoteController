@@ -125,7 +125,7 @@ struct PaywallView: View {
                     title: "Weekly",
                     subtitle: nil,
                     trailing: "\(viewModel.price(weekly))/week",
-                    isSelected: viewModel.selectedProduct?.id == weekly.id
+                    isSelected: viewModel.selectedProduct?.productId == weekly.productId
                 ) {
                     viewModel.select(weekly)
                 }
@@ -137,7 +137,7 @@ struct PaywallView: View {
                     subtitle: "\(viewModel.price(yearly))/year",
                     trailing: "\(viewModel.pricePerWeek(yearly))",
                     badge: "Save \(viewModel.weeklySavingsPercent(weekly: viewModel.weeklyProduct ?? nil, yearly: yearly))%",
-                    isSelected: viewModel.selectedProduct?.id == yearly.id
+                    isSelected: viewModel.selectedProduct?.productId == yearly.productId
                 ) {
                     viewModel.select(yearly)
                 }
@@ -214,7 +214,9 @@ struct PaywallView: View {
             Link("Privacy Policy", destination: URL(string: "https://docs.google.com/document/d/1ak3VZmfz2ODN2fTTg2RtBSV_HqsRLz0H_6EweqXw-QM/edit?usp=sharing")!)
             Text("|").foregroundColor(.white.opacity(0.3))
             Button("Restore") {
-                viewModel.restore { _ in }
+                viewModel.restore { _ in
+                    dismiss()
+                }
             }
         }
         .font(.system(size: 12))
