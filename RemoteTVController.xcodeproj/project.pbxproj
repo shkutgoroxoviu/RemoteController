@@ -10,6 +10,7 @@
 		0150EBC72EF3245D0020193D /* MQTT in Frameworks */ = {isa = PBXBuildFile; productRef = 0150EBC62EF3245D0020193D /* MQTT */; };
 		0150EBCA2EF326310020193D /* SwiftMQTT in Frameworks */ = {isa = PBXBuildFile; productRef = 0150EBC92EF326310020193D /* SwiftMQTT */; };
 		0150EBCD2EF335170020193D /* CocoaAsyncSocket in Frameworks */ = {isa = PBXBuildFile; productRef = 0150EBCC2EF335170020193D /* CocoaAsyncSocket */; };
+		019E16032EFE9966005794A5 /* ApphudSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 019E16022EFE9966005794A5 /* ApphudSDK */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -43,6 +44,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0150EBCA2EF326310020193D /* SwiftMQTT in Frameworks */,
+				019E16032EFE9966005794A5 /* ApphudSDK in Frameworks */,
 				0150EBC72EF3245D0020193D /* MQTT in Frameworks */,
 				0150EBCD2EF335170020193D /* CocoaAsyncSocket in Frameworks */,
 			);
@@ -90,6 +92,7 @@
 				0150EBC62EF3245D0020193D /* MQTT */,
 				0150EBC92EF326310020193D /* SwiftMQTT */,
 				0150EBCC2EF335170020193D /* CocoaAsyncSocket */,
+				019E16022EFE9966005794A5 /* ApphudSDK */,
 			);
 			productName = RemoteTVController;
 			productReference = 01930F0D2EF2DD9200B90740 /* RemoteTVController.app */;
@@ -123,6 +126,7 @@
 				0150EBC52EF3245D0020193D /* XCRemoteSwiftPackageReference "swift-mqtt" */,
 				0150EBC82EF326310020193D /* XCRemoteSwiftPackageReference "SwiftMQTT" */,
 				0150EBCB2EF335170020193D /* XCRemoteSwiftPackageReference "CocoaAsyncSocket" */,
+				019E16012EFE9966005794A5 /* XCRemoteSwiftPackageReference "ApphudSDK" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 01930F0E2EF2DD9200B90740 /* Products */;
@@ -288,9 +292,11 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = RemoteTVController/Info.plist;
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "We need access to your local network to find TVs";
+				INFOPLIST_KEY_NSUserTrackingUsageDescription = "RemoteTVController uses data to improve user experience";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen.storyboard;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
@@ -327,9 +333,11 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = RemoteTVController/Info.plist;
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "We need access to your local network to find TVs";
+				INFOPLIST_KEY_NSUserTrackingUsageDescription = "RemoteTVController uses data to improve user experience";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen.storyboard;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
@@ -402,6 +410,14 @@
 				minimumVersion = 7.6.5;
 			};
 		};
+		019E16012EFE9966005794A5 /* XCRemoteSwiftPackageReference "ApphudSDK" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apphud/ApphudSDK";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.6.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -419,6 +435,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 0150EBCB2EF335170020193D /* XCRemoteSwiftPackageReference "CocoaAsyncSocket" */;
 			productName = CocoaAsyncSocket;
+		};
+		019E16022EFE9966005794A5 /* ApphudSDK */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 019E16012EFE9966005794A5 /* XCRemoteSwiftPackageReference "ApphudSDK" */;
+			productName = ApphudSDK;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -74,6 +74,9 @@ struct DeviceSearchView: View {
         .fullScreenCover(isPresented: $viewModel.showPINEntry) {
             PINEntryView(viewModel: viewModel)
         }
+        .fullScreenCover(isPresented: $appState.hasShownCustomRateUs) {
+            RateUsView(viewModel: SettingsViewModel())
+        }
         .alert("Connection Error", isPresented: $viewModel.showConnectionError) {
             Button("Try Again") {
                 if let d = viewModel.selectedDevice {

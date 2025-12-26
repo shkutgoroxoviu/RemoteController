@@ -4,7 +4,7 @@
 //
 
 import SwiftUI
-import Combine
+internal import Combine
 
 @MainActor
 final class AppState: ObservableObject {
@@ -24,6 +24,12 @@ final class AppState: ObservableObject {
     @Published var hasShownInitialPaywall: Bool {
         didSet {
             UserDefaults.standard.set(hasShownInitialPaywall, forKey: Keys.initialPaywallShown)
+        }
+    }
+    
+    @Published var hasSubscribed: Bool {
+        didSet {
+            UserDefaults.standard.set(hasSubscribed, forKey: Keys.hasSub)
         }
     }
     
@@ -47,6 +53,7 @@ final class AppState: ObservableObject {
         static let onboardingPage = "onboarding_page"
         static let initialPaywallShown = "initial_paywall_shown"
         static let customRateUsShown = "custom_rate_us_shown"
+        static let hasSub = "subcribed"
     }
     
     // MARK: - Init
@@ -55,6 +62,7 @@ final class AppState: ObservableObject {
         self.currentOnboardingPage = UserDefaults.standard.integer(forKey: Keys.onboardingPage)
         self.hasShownInitialPaywall = UserDefaults.standard.bool(forKey: Keys.initialPaywallShown)
         self.hasShownCustomRateUs = UserDefaults.standard.bool(forKey: Keys.customRateUsShown)
+        self.hasSubscribed = UserDefaults.standard.bool(forKey: Keys.hasSub)
         
         startSessionTimer()
     }
@@ -64,7 +72,8 @@ final class AppState: ObservableObject {
         sessionStartTime = Date()
         
         paywallTimer = Timer.scheduledTimer(withTimeInterval: 20, repeats: false) { [weak self] _ in
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
+                guard !(self?.hasSubscribed ?? false) else { return }
                 self?.checkSessionPaywall()
             }
         }

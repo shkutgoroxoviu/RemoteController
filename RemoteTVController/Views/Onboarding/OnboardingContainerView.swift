@@ -37,6 +37,9 @@ struct OnboardingContainerView: View {
                     OnboardingPageContent(page: viewModel.currentPageData)
                     
                     PrimaryButton(title: viewModel.currentPageData.buttonTitle, style: .filled) {
+                        if viewModel.currentPage == 1 {
+                            viewModel.requestIDFAPermission()
+                        }
                         if viewModel.isLastPage {
                             viewModel.completeOnboarding()
                             appState.completeOnboarding()
@@ -54,7 +57,7 @@ struct OnboardingContainerView: View {
                         Text("|").foregroundColor(.white.opacity(0.3))
                         Link("Privacy Policy", destination: URL(string: "https://example.com/privacy")!)
                         Text("|").foregroundColor(.white.opacity(0.3))
-                        Button("Restore") { Task { await SubscriptionManager.shared.restorePurchases() } }
+//                        Button("Restore") { Task { await SubscriptionManager.shared.restorePurchases() } }
                     }
                     .font(.system(size: 12))
                     .foregroundColor(.white.opacity(0.5))

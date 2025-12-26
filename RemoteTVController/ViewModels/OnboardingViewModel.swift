@@ -4,8 +4,11 @@
 //
 
 import SwiftUI
-import StoreKit
-import Combine
+internal import StoreKit
+internal import Combine
+import AppTrackingTransparency
+import ApphudSDK
+import AdSupport
 
 @MainActor
 final class OnboardingViewModel: ObservableObject {
@@ -41,6 +44,29 @@ final class OnboardingViewModel: ObservableObject {
         AnalyticsService.shared.trackEvent(.rateUsShown, properties: ["type": "system"])
         if let scene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
             SKStoreReviewController.requestReview(in: scene)
+        }
+    }
+    
+    func requestIDFAPermission() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            if #available(iOS 14, *) {
+                ATTrackingManager.requestTrackingAuthorization { status in
+                    switch status {
+                    case .authorized:
+                        let idfa = ASIdentifierManager.shared().advertisingIdentifier.uuidString
+                        Apphud.setDeviceIdentifiers(idfa: idfa, idfv: UIDevice.current.identifierForVendor?.uuidString)
+                        print("IDFA access granted:", ASIdentifierManager.shared().advertisingIdentifier)
+                    case .denied:
+                        print("IDFA denied")
+                    case .notDetermined:
+                        print("IDFA not determined")
+                    case .restricted:
+                        print("IDFA restricted")
+                    @unknown default:
+                        break
+                    }
+                }
+            }
         }
     }
 }

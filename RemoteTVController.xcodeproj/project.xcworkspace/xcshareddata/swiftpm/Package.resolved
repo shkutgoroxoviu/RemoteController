@@ -1,6 +1,15 @@
 {
-  "originHash" : "0d5dd7a4f6d4cf918c448a0a3125ca8e7c9cee1259b1564cf5313ac5aea5f71d",
+  "originHash" : "54a13e436a13dba9329bef881cfcb77c7e747b7f5d5eda3bd632dc4fe3e4d44c",
   "pins" : [
+    {
+      "identity" : "apphudsdk",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apphud/ApphudSDK",
+      "state" : {
+        "revision" : "a4d2b93384cc67fa6a853465ff345be6f84b0a72",
+        "version" : "3.6.2"
+      }
+    },
     {
       "identity" : "cocoaasyncsocket",
       "kind" : "remoteSourceControl",

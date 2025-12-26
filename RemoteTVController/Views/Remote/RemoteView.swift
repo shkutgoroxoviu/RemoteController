@@ -10,6 +10,8 @@ struct RemoteView: View {
     @EnvironmentObject var tvManager: TVConnectionManager
     @StateObject private var viewModel = RemoteViewModel()
     
+    @State private var showProAlert = false
+    
     var body: some View {
         ZStack {
             Color(hex: "15141C").ignoresSafeArea()
@@ -31,6 +33,11 @@ struct RemoteView: View {
             .padding(.horizontal, 24)
             .padding(.top, 16)
         }
+        .alert("You already have PRO", isPresented: $showProAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("You already have an active subscription.")
+        }
         .alert("Connection Error", isPresented: $viewModel.showError) {
             Button("Try Again") { viewModel.reconnectToLastDevice() }
             Button("Cancel", role: .cancel) {}
@@ -42,7 +49,14 @@ struct RemoteView: View {
             RemoteButtonView(button: .power, size: .init(width: 72, height: 56)) { sendCommand(.power) }
             Spacer()
             Button {
-                if !SubscriptionManager.shared.isSubscribed { appState.triggerPaywall(for: .premiumFeature) }
+                Task {
+                    await StoreKitSubscriptionManager.shared.updatePurchasedProducts()
+                    if !StoreKitSubscriptionManager.shared.isSubscribed {
+                        appState.triggerPaywall(for: .premiumFeature)
+                    } else {
+                        showProAlert = true
+                    }
+                }
             } label: {
                 Text("PRO").font(.system(size: 12, weight: .bold)).foregroundColor(Color(hex: "15141C"))
                     .frame(width: 72, height: 56)

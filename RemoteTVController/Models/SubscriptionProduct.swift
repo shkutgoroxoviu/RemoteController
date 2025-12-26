@@ -4,7 +4,7 @@
 //
 
 import Foundation
-import StoreKit
+internal import StoreKit
 
 // MARK: - Subscription Type
 enum SubscriptionType: String, CaseIterable {

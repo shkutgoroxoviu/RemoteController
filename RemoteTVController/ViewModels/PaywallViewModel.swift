@@ -4,65 +4,128 @@
 //
 
 import SwiftUI
-import Combine
+internal import Combine
+import ApphudSDK
+internal import StoreKit
 
 @MainActor
 final class PaywallViewModel: ObservableObject {
-    @Published var products: [SubscriptionProduct] = []
-    @Published var selectedProduct: SubscriptionProduct?
+
+    // MARK: - Published (для View)
+    @Published var weeklyProduct: Product?
+    @Published var yearlyProduct: Product?
+    @Published var selectedProduct: Product?
+
     @Published var isLoading: Bool = false
     @Published var canClose: Bool = false
     @Published var showError: Bool = false
     @Published var errorMessage: String = ""
-    
-    let trigger: PaywallTrigger
-    private var closeTimer: Timer?
+
+    // MARK: - IDs
+    private let weeklyId = "week_6.99_nottrial"
+    private let yearlyId = "yearly_49.99_nottrial"
+
+    private let manager = StoreKitSubscriptionManager.shared
     private var cancellables = Set<AnyCancellable>()
-    
-    init(trigger: PaywallTrigger) {
-        self.trigger = trigger
-        
-        SubscriptionManager.shared.$products
+    private var closeTimer: Timer?
+
+    // MARK: - Init
+    init() {
+        Task {
+            await manager.fetchProducts()
+            bind()
+            startCloseTimer()
+        }
+    }
+
+    deinit {
+        closeTimer?.invalidate()
+    }
+
+    // MARK: - Bind SubscriptionManager
+    private func bind() {
+
+        manager.$products
             .receive(on: DispatchQueue.main)
             .sink { [weak self] products in
-                self?.products = products
-                self?.selectedProduct = products.first(where: { $0.type == .yearly }) ?? products.first
+                guard let self else { return }
+
+                self.weeklyProduct = products.first { $0.id == self.weeklyId }
+                self.yearlyProduct = products.first { $0.id == self.yearlyId }
+
+                self.selectedProduct = self.yearlyProduct ?? self.weeklyProduct
             }
             .store(in: &cancellables)
-        
-        SubscriptionManager.shared.$isLoading.receive(on: DispatchQueue.main).assign(to: &$isLoading)
-        SubscriptionManager.shared.$errorMessage
-            .compactMap { $0 }
-            .sink { [weak self] msg in
-                self?.errorMessage = msg
+
+        manager.$isLoading
+            .assign(to: &$isLoading)
+
+        manager.$errorMessage
+            .sink { [weak self] message in
+                guard !message.isEmpty else { return }
+                self?.errorMessage = message
                 self?.showError = true
             }
             .store(in: &cancellables)
-        
-        closeTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { [weak self] _ in
-            Task { @MainActor in
-                withAnimation { self?.canClose = true }
+    }
+
+    // MARK: - UI actions
+    func select(_ product: Product) {
+        selectedProduct = product
+    }
+
+    @MainActor
+    func purchase(completion: @escaping (Bool) -> Void) async {
+        guard let product = selectedProduct else {
+            completion(false)
+            return
+        }
+
+        await manager.purchase(product) { success, error in
+            if let error {
+                self.errorMessage = error
+                self.showError = true
+            }
+            completion(success)
+        }
+    }
+
+    func restore(completion: @escaping (Bool) -> Void) {
+//        manager.restorePurchases { success, error in
+//            if let error {
+//                self.errorMessage = error
+//                self.showError = true
+//            }
+//            completion(success)
+//        }
+    }
+
+    // MARK: - Price helpers (просто прокси)
+    func price(_ product: Product) -> String {
+        manager.getPriceString(for: product)
+    }
+
+    func pricePerWeek(_ product: Product) -> String {
+        let weekly = NSDecimalNumber(decimal: product.price).doubleValue / 52
+        return String(format: "$%.2f/week", weekly)
+    }
+    
+    func weeklySavingsPercent(weekly: Product?, yearly: Product?) -> Int {
+        guard let weekly = weekly, let yearly = yearly else { return 0 }
+        let weeklyPrice = (weekly.price as NSDecimalNumber).doubleValue
+        let yearlyPricePerWeek = (yearly.price as NSDecimalNumber).doubleValue / 52
+
+        let savings = 1 - (yearlyPricePerWeek / weeklyPrice)
+        return Int(savings * 100)
+    }
+
+    // MARK: - Close delay
+    private func startCloseTimer() {
+        closeTimer = Timer.scheduledTimer(withTimeInterval: 3, repeats: false) { [weak self] _ in
+            withAnimation {
+                self?.canClose = true
             }
         }
     }
-    
-    func selectProduct(_ product: SubscriptionProduct) { selectedProduct = product }
-    
-    func purchase() async -> Bool {
-        guard let product = selectedProduct else { return false }
-        return await SubscriptionManager.shared.purchase(product)
-    }
-    
-    func restore() async -> Bool {
-        await SubscriptionManager.shared.restorePurchases()
-    }
-    
-    var weeklyProduct: SubscriptionProduct? { products.first(where: { $0.type == .weekly }) }
-    var yearlyProduct: SubscriptionProduct? { products.first(where: { $0.type == .yearly }) }
-    var hasFreeTrial: Bool { selectedProduct?.hasFreeTrial ?? false }
-    var trialDuration: String { selectedProduct?.trialDuration ?? "3-Day" }
-    
-    deinit { closeTimer?.invalidate() }
 }
-
 

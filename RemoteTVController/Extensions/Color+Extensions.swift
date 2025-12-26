@@ -25,4 +25,25 @@ extension Color {
     }
 }
 
+extension UIColor {
+    /// Цвет от hex значения, пример UIColor(hexValue: 0xFFFFFF)
+    /// - Parameter hexValue: цвет в x16 формате 0xFFFFFF
+    /// - Description: UIColor(hexValue: 0xFFFFFF)
+    convenience init(hexValue: UInt32) {
+        let red: CGFloat = CGFloat((hexValue & 0x00FF0000) >> 16) / 255.0
+        let green: CGFloat = CGFloat((hexValue & 0x0000FF00) >> 8) / 255.0
+        let blue: CGFloat = CGFloat(hexValue & 0x000000FF) / 255.0
+        self.init(red: red, green: green, blue: blue, alpha: 1.0)
+    }
+    
+    convenience init(light: UIColor, dark: UIColor){
+        self.init { trait in
+            if case .dark = trait.userInterfaceStyle {
+                return dark
+            }
+            return light
+        }
+    }
+}
+
 

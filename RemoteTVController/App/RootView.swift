@@ -18,7 +18,7 @@ struct RootView: View {
             }
         }
         .fullScreenCover(isPresented: $appState.showPaywall) {
-            PaywallView(trigger: appState.paywallTrigger)
+            PaywallView()
         }
     }
 }

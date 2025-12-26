@@ -10,36 +10,40 @@ import SwiftUI
 @main
 struct RemoteTVControllerApp: App {
     @StateObject private var appState = AppState()
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var subscriptionManager = SubscriptionManager.shared
     @StateObject private var tvManager = TVConnectionManager.shared
     
+    @State private var showSplash = true  
+    
     init() {
-////        let mockServer = MockTVServer()
-////        mockServer.start(port: 5555)
-//        let emulatorDevice = TVDevice(
-//            name: "Android TV Emulator",
-//            ipAddress: "127.0.0.1", // здесь можно использовать идентификатор adb
-//            brand: .tcl,
-//            platform: .androidTV,
-//            model: "Emulator-5554"
-//        )
-//        
-//        // Добавляем его сразу в сохранённые устройства
-//        TVConnectionManager.shared.addDevice(emulatorDevice)
         AnalyticsService.shared.initialize()
-        SubscriptionManager.shared.initialize()
+//        SubscriptionManager.shared.initialize()
         AnalyticsService.shared.trackEvent(.appLaunched)
     }
     
     var body: some Scene {
         WindowGroup {
-            RootView()
-                .environmentObject(appState)
-                .environmentObject(subscriptionManager)
-                .environmentObject(tvManager)
-                .preferredColorScheme(.dark)
+            ZStack {
+                if showSplash {
+                    SplashView()
+                        .transition(.opacity)
+                } else {
+                    RootView()
+                        .environmentObject(appState)
+                        .environmentObject(subscriptionManager)
+                        .environmentObject(tvManager)
+                        .transition(.opacity)
+                }
+            }
+            .preferredColorScheme(.dark)
+            .onAppear {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+                    withAnimation(.easeOut(duration: 0.35)) {
+                        showSplash = false
+                    }
+                }
+            }
         }
     }
 }
-
-

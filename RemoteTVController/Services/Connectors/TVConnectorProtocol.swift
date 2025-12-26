@@ -5,7 +5,7 @@
 
 import Foundation
 import Network
-import Combine
+internal import Combine
 
 // MARK: - Connection State
 enum ConnectorState: Equatable {

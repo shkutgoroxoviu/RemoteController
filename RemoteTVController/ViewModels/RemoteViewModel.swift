@@ -4,7 +4,7 @@
 //
 
 import SwiftUI
-import Combine
+internal import Combine
 
 @MainActor
 final class RemoteViewModel: ObservableObject {
@@ -14,6 +14,10 @@ final class RemoteViewModel: ObservableObject {
     @Published var errorMessage: String = ""
     
     private let tvManager = TVConnectionManager.shared
+    
+    var isSubscribed: Bool {
+        return SubscriptionManager.shared.isSubscribed
+    }
     
     init() {
         tvManager.$connectionStatus.receive(on: DispatchQueue.main).assign(to: &$connectionStatus)
